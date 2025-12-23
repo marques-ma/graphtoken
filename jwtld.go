@@ -26,7 +26,7 @@ type Payload struct {
 	Aud  *IDClaim               `json:"aud,omitempty"`
 	Sub  *IDClaim               `json:"sub,omitempty"`
 	Data map[string]interface{} `json:"data,omitempty"`
-	List []*LDNode              `json:"@list"`
+	List []*LDNode              `json:"@list,omitempty"`
 }
 
 type IDClaim struct {

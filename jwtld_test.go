@@ -174,3 +174,69 @@ func TestCreateExtendValidateJWS_SchoCoMode_Debug(t *testing.T) {
 
 }
 
+func runSchoCoExtensionTest(t *testing.T, nExt int) {
+	t.Helper()
+
+	fmt.Println("=== SchoCo Mode Test ===")
+
+	// Root keypair
+	rootPriv, rootPub := schoco.KeyPair("root")
+	rootPKBytes, _ := schoco.PointToByte(rootPub)
+
+	rootPayload := &Payload{
+		Ver: 1,
+		Iat: time.Now().Unix(),
+		Iss: &IDClaim{
+			CN: "root",
+			PK: rootPKBytes,
+		},
+		Data: map[string]interface{}{"msg": "root node"},
+		List: []*LDNode{},
+	}
+
+	jws, err := CreateJWS(rootPayload, 1, rootPriv)
+	if err != nil {
+		t.Fatalf("CreateJWS SchoCo failed: %v", err)
+	}
+	fmt.Println("Root JWS:", jws)
+
+	ok, err := ValidateJWS(jws, 1)
+	if err != nil || !ok {
+		t.Fatalf("ValidateJWS SchoCo root failed: %v", err)
+	}
+	fmt.Println("Root JWS validation OK")
+
+	// Apply N extensions
+	for i := 1; i <= nExt; i++ {
+		extPayload := &LDNode{
+			Payload: &Payload{
+				Ver: 1,
+				Iat: time.Now().Unix(),
+				Iss: &IDClaim{
+					CN: fmt.Sprintf("anonymousNode-%d", i),
+				},
+			},
+		}
+
+		jws, err = ExtendJWS(jws, extPayload, 1)
+		if err != nil {
+			t.Fatalf("ExtendJWS SchoCo %d failed: %v", i, err)
+		}
+		fmt.Printf("After %d extension(s) JWS: %s\n", i, jws)
+
+		ok, err = ValidateJWS(jws, 1)
+		if err != nil || !ok {
+			t.Fatalf("ValidateJWS SchoCo after %d ext failed: %v", i, err)
+		}
+		fmt.Printf("Validation after %d extension(s) OK\n", i)
+		fmt.Printf("Token: %s\n", jws)
+	}
+}
+
+func TestCreateExtendValidateJWS_SchoCoMode(t *testing.T) {
+	for _, n := range []int{1, 2, 4, 8, 16} {
+		t.Run(fmt.Sprintf("%d-extensions", n), func(t *testing.T) {
+			runSchoCoExtensionTest(t, n)
+		})
+	}
+}
