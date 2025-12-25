@@ -1,4 +1,4 @@
-module jwtld
+module github.com/marques-ma/graphtoken
 
 go 1.23.3
 
